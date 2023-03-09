@@ -24,17 +24,22 @@ class Game:
         self.GENERATE = Generate()  # Generate class
         self.Player = Player()  # Player class
 
-        # Debug #
-        self.Debug()
-
         # Game variables #
-        self.game_state = "combat"  # Game state (menu, combat, etc)
+        self.game_state = "menu"  # Game state (menu, combat, etc)
         self.menu_state = "main"  # Menu state (main, pokemon, etc)
         self.COMBAT = None  # Combat class
+
+        # time #
+        self.last_time = pg.time.get_ticks()
+        self.current_time = 0
+
+        # Debug #
+        self.Debug()
 
     # Start combat function #
     def start_combat(self, pokemon, enemy):
         self.COMBAT = Combat(self.GAME, pokemon, enemy)
+        self.game_state = "combat"
 
     # Debug function (for testing) don't forget to remove it before release #
     def Debug(self):
@@ -50,42 +55,26 @@ class Game:
         #     self.Player.get_pokemons()[0].level_up()
 
         # Debug Combat
-        self.start_combat(self.Player.get_pokemons(), Pokemon(self, 2, self.GENERATE.generate_IV(), 1, self.GENERATE.generate_nature(), 5, [1], False))
+        self.start_combat(self.Player.get_pokemons(), Pokemon(self, 1, self.GENERATE.generate_IV(), 1, self.GENERATE.generate_nature(), 5, [1], False))
 
     # Pygame Draw function #
     def draw(self):
 
-        # Background #
-        self.screen.blit(self.SPRITES.back_ground, (0, 0))
-
-        # pokemon DEBUG DRAW | TODO: delete this #
-        self.screen.blit(self.SPRITES.get_pokemon_sprite(4, "front"), (800, 70))
-        self.screen.blit(self.SPRITES.get_pokemon_sprite(15, "back"), (250, 275))
-
-        # Field #
-        self.screen.blit(self.SPRITES.enemy_pokemon_status, (80, 50))
-        self.screen.blit(self.SPRITES.player_pokemon_status, (720, 345))
-
-        # Bottom UI #
-        self.screen.blit(self.SPRITES.bottom_message_box, (0, 500))
-        self.screen.blit(self.SPRITES.choice_box, (680, 500))
-        self.screen.blit(self.SPRITES.choice_arrow, (715, 555))
-
-
-
-
-
+        if self.game_state == "combat":
+            self.COMBAT.draw(self.screen)
         pg.display.flip()
         pg.display.update()
 
     # GAME LOOP #
     def run(self):
         while True:
+            self.current_time = pg.time.get_ticks()
             self.clock.tick(self.SETTINGS.FPS)
             self.draw()
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     pg.quit()
+                    sys.exit()
 
 
 # Create the game instance #

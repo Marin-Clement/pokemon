@@ -1,6 +1,8 @@
 import random
 import math
 
+import pygame
+
 
 class Combat:
     def __init__(self, game, player_pokemons, enemy_pokemon):
@@ -9,8 +11,21 @@ class Combat:
         self.__enemy_pokemon = enemy_pokemon  # Enemy object
         self.__run_attempt = 0  # take note of the number of run attempt
 
+        # Visuals Variables #
+        self.__enemy_pokemon_x = 1280
+        self.__player_sprite_x = -400
+        self.__player_sprite = 1
+        self.__pokemon_scale = 20
+        self.__pokemon__y = 400
+        self.__pokemon__x = 400
+        self.__spawn_color = 200
+
         # Check who attack first
         self.attacker = self.check_who_attack_first()
+
+        # Animation variables #
+        self.__intro_played = False
+        self.__pokemon_spawned = False
 
         # self.turn()  # start the combat
 
@@ -167,3 +182,66 @@ class Combat:
         print("You win !")
         print("You get " + str(self.calculate_xp()) + " xp and " + str(self.calculate_money()) + " money")
 
+    def draw(self, screen):
+
+        # Background #
+        screen.blit(self.game.SPRITES.forest_background, (0, 0))
+
+        # Pokemon #
+        # Enemy Intro #
+        self.play_summon_enemy_pokemon(screen)
+
+        if self.__intro_played:
+            self.play_summon_pokemon(screen)
+            if self.__pokemon_spawned:
+                scaled_pokemon_sprite = pygame.transform.scale(self.game.SPRITES.get_pokemon_sprite(self.__player_pokemon.get_id() + 1, "back"), (self.__pokemon_scale, self.__pokemon_scale))
+                screen.blit(scaled_pokemon_sprite, (self.__pokemon__x, self.__pokemon__y))
+
+        # Player Intro #
+        screen.blit(self.game.SPRITES.get_combat_player_sprite(self.__player_sprite), (self.__player_sprite_x, 200))
+
+        # Status #
+        screen.blit(self.game.SPRITES.enemy_pokemon_status, (80, 50))
+        screen.blit(self.game.SPRITES.player_pokemon_status, (720, 345))
+
+        # Bottom UI #
+        screen.blit(self.game.SPRITES.bottom_message_box, (0, 500))
+        screen.blit(self.game.SPRITES.choice_box, (680, 500))
+        screen.blit(self.game.SPRITES.choice_arrow, (715, 555))
+
+        # Player Intro
+        if self.__enemy_pokemon_x <= 800:
+            if not self.__intro_played:
+                if self.__player_sprite_x < 0:
+                    self.__player_sprite_x += 10
+                else:
+                    self.play_player_intro()
+            else:
+                if self.__player_sprite_x > -400:
+                    self.__player_sprite_x -= 10
+
+    def play_player_intro(self):
+        if self.game.current_time - self.game.last_time >= self.game.SPRITES.player_intro_speed:
+            self.__player_sprite += 1
+            self.game.last_time = self.game.current_time
+            if self.__player_sprite == 5:
+                self.__intro_played = True
+                self.__player_sprite = 1
+
+    def play_summon_pokemon(self, screen):
+        player_pokemon_sprite = self.game.SPRITES.get_pokemon_sprite(self.__player_pokemon.get_id() + 1, "back")
+        player_pokemon_sprite.fill((255, self.__spawn_color, 255), special_flags=pygame.BLEND_MAX)
+        scaled_pokemon_sprite = pygame.transform.scale(player_pokemon_sprite, (self.__pokemon_scale, self.__pokemon_scale))
+        if self.__pokemon_scale < 300:
+            self.__pokemon_scale += 10
+            self.__spawn_color -= 5
+            self.__pokemon__y -= 5
+            self.__pokemon__x -= 5
+            screen.blit(scaled_pokemon_sprite, (self.__pokemon__x, self.__pokemon__y))
+        else:
+            self.__pokemon_spawned = True
+
+    def play_summon_enemy_pokemon(self, screen):
+        if self.__enemy_pokemon_x > 800:
+            self.__enemy_pokemon_x -= 10
+        screen.blit(self.game.SPRITES.get_pokemon_sprite(self.__enemy_pokemon.get_id() + 1, "front"), (self.__enemy_pokemon_x, 70))

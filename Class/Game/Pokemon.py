@@ -1,5 +1,6 @@
 import math
 
+
 class Pokemon:
     def __init__(self, game, pokemon_id, iv, ev, nature, level, moves, shiny):  # IV = Individual Value, EV = Effort Value, nature = Nature, level = Level, moves = Moves, shiny = Shiny
 
@@ -58,6 +59,10 @@ class Pokemon:
         self.debug_all()  # debug all stats of the pokemon
 
     # _____GETTERS_____ #
+
+    # get the id of the pokemon #
+    def get_id(self):
+        return self.__ID
 
     # get the current moves of the pokemon #
     def get_moves(self):
