@@ -47,7 +47,7 @@ class Game:
         print("Debug")
 
         # Debug Add pokemon
-        self.Player.add_pokemons(Pokemon(self, 25, self.GENERATE.generate_IV(), 20, self.GENERATE.generate_nature(), 5, [35, 6], False))
+        self.Player.add_pokemons(Pokemon(self, 25, self.GENERATE.generate_IV(), 20, self.GENERATE.generate_nature(), 5, [1, 3, 4], False))
         # self.Player.add_pokemons(Pokemon(self, 5, self.GENERATE.generate_IV(), 1, self.GENERATE.generate_nature(), 1, [1, 3, 6, 4], True))
 
         # Debug Level up pokemon
@@ -59,11 +59,21 @@ class Game:
 
     # Pygame Draw function #
     def draw(self):
+        if self.game_state == "map":
+            self.screen.fill(self.COLORS.BLACK)
 
         if self.game_state == "combat":
             self.COMBAT.draw(self.screen)
         pg.display.flip()
         pg.display.update()
+
+    def input(self, event):
+        if self.game_state == "combat":
+            self.COMBAT.input(event)
+        elif self.game_state == "map":
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_RETURN:
+                    self.start_combat(self.Player.get_pokemons(), Pokemon(self, 1, self.GENERATE.generate_IV(), 1, self.GENERATE.generate_nature(), 5, [1], False))
 
     # GAME LOOP #
     def run(self):
@@ -72,6 +82,7 @@ class Game:
             self.clock.tick(self.SETTINGS.FPS)
             self.draw()
             for event in pg.event.get():
+                self.input(event)
                 if event.type == pg.QUIT:
                     pg.quit()
                     sys.exit()

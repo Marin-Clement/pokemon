@@ -4,12 +4,19 @@ import math
 import pygame
 
 
+
 class Combat:
     def __init__(self, game, player_pokemons, enemy_pokemon):
         self.game = game  # Game object
         self.__player_pokemon = player_pokemons[0]  # Pokemon object
         self.__enemy_pokemon = enemy_pokemon  # Enemy object
         self.__run_attempt = 0  # take note of the number of run attempt
+
+        # Combat variables #
+        self.__choice = 1  # choice of the player (depends on the menu)
+
+        # Menu variables #
+        self.__menu = 0  # menu state (0: menu_choices, 1: attack, 2: bag, 3: pokemon, 4: run)
 
         # Visuals Variables #
         self.__enemy_pokemon_x = 1280
@@ -25,6 +32,7 @@ class Combat:
 
         # Animation variables #
         self.__intro_played = False
+        self.__enemy_pokemon_spawned = False
         self.__pokemon_spawned = False
 
         # self.turn()  # start the combat
@@ -46,60 +54,37 @@ class Combat:
             # TODO: STATUS ATTACK (ex: poison, sleep, etc...)
 
     # TURN METHOD (manage the turn)
-    def turn(self):
+    def turn(self, move_choice=0):  # move_choice(1=attack, 2=switch, 3=bag | default(enemy_turn)=0)
+
+        if move_choice == 0:
+            self.attacker = self.__enemy_pokemon
 
         # ask the player what he want to do
         if self.attacker == self.__player_pokemon:
-            print("What do you want to do ?")
-            print("1. Attack")
-            print("2. Switch")
-            print("3. Bag")
-            print("4. Run")
-            choice = input("")
+            if move_choice == 1:
+                damage = self.attack(self.__player_pokemon.get_lvl(), self.__player_pokemon.get_attack(), self.__player_pokemon.get_sp_attack(),
+                                     self.__player_pokemon.get_moves()[int(self.__choice) - 1]["type"], self.__player_pokemon.get_moves()[int(self.__choice) - 1]["category"], self.__player_pokemon.get_moves()[int(self.__choice) - 1]["power"],
+                                     self.__enemy_pokemon.get_defense(), self.__enemy_pokemon.get_sp_defense(), self.__enemy_pokemon.get_type())
+                self.__enemy_pokemon.take_damage(damage)
+                print(self.__player_pokemon.get_name() + " use " + self.__player_pokemon.get_moves()[int(self.__choice) - 1]["name"] + " and deal " + str(damage) + " damage")
+                print(self.__enemy_pokemon.get_name() + " have " + str(self.__enemy_pokemon.get_hp()) + " hp left")
 
-            # choice 1: attack | TODO: (ONLY FOR TEST IN TERMINAL - NOT FOR GUI VERSION DON'T FORGET TO REMOVE IT)
-            if choice == "1":
-                print("Which attack do you want to use ?")
-                for i in range(0, len(self.__player_pokemon.get_moves())):
-                    print(str(i + 1) + ". " + self.__player_pokemon.get_moves()[i]["name"])
-                choice = input("")
-
-                # Check if the choice is valid
-                if choice.isdigit() and 0 < int(choice) <= len(self.__player_pokemon.get_moves()):
-                    # Make the player attack
-                    damage = self.attack(self.__player_pokemon.get_lvl(), self.__player_pokemon.get_attack(), self.__player_pokemon.get_sp_attack(),
-                                         self.__player_pokemon.get_moves()[int(choice) - 1]["type"], self.__player_pokemon.get_moves()[int(choice) - 1]["category"], self.__player_pokemon.get_moves()[int(choice) - 1]["power"],
-                                         self.__enemy_pokemon.get_defense(), self.__enemy_pokemon.get_sp_defense(), self.__enemy_pokemon.get_type())
-                    self.__enemy_pokemon.take_damage(damage)
-                    print(self.__player_pokemon.get_name() + " use " + self.__player_pokemon.get_moves()[int(choice) - 1]["name"] + " and deal " + str(damage) + " damage")
-                    print(self.__enemy_pokemon.get_name() + " have " + str(self.__enemy_pokemon.get_hp()) + " hp left")
-                else:
-                    choice = None
-                    self.turn()
-
-            # choice 2: switch | TODO: (ONLY FOR TEST IN TERMINAL - NOT FOR GUI VERSION DON'T FORGET TO REMOVE IT)
-            elif choice == "2":
+            elif move_choice == 2:
                 self.switch_pokemon()
 
             # choice 3: bag | TODO: (ONLY FOR TEST IN TERMINAL - NOT FOR GUI VERSION DON'T FORGET TO REMOVE IT)
-            elif choice == "3":
+            elif move_choice == "3":
                 print("Bag")
-
-            # choice 4: run | TODO: (ONLY FOR TEST IN TERMINAL - NOT FOR GUI VERSION DON'T FORGET TO REMOVE IT)
-            elif choice == "4":
-                if self.run():
-                    # stop the combat
-                    return
-                else:
-                    pass
 
             # check if the enemy is dead (if yes, end the combat else next turn)
             if self.__enemy_pokemon.is_alive():
                 if self.attacker == self.__player_pokemon:
                     self.attacker = self.__enemy_pokemon
+                    self.__menu = 0
+                    self.__choice = 1
+                    self.turn()
                 else:
                     self.attacker = self.__player_pokemon
-                self.turn()
             else:
                 self.win()
 
@@ -122,8 +107,8 @@ class Combat:
                     self.attacker = self.__enemy_pokemon
                 else:
                     self.attacker = self.__player_pokemon
-                self.turn()
             else:
+                self.lose()
                 print("You lose !")
 
     # check who attack first (player or enemy) and return the pokemon who attack first (random if same speed)
@@ -155,11 +140,12 @@ class Combat:
         ood_escape = (((self.__player_pokemon.get_speed() * 128) / self.__enemy_pokemon.get_speed()) + 30 * self.__run_attempt) % 256
         if ood_escape > random.randint(0, 255):
             print("You run away")
-            return True
+            self.game.game_state = "map"
+            del self
         else:
             print("You can't run away")
             self.__run_attempt += 1
-            return False
+            self.turn()  # if the player can't run, the enemy attack
 
     # function that calculate how much xp the player will get
     def calculate_xp(self):
@@ -181,33 +167,138 @@ class Combat:
 
         print("You win !")
         print("You get " + str(self.calculate_xp()) + " xp and " + str(self.calculate_money()) + " money")
+        self.game.game_state = "map"
+        del self
+
+    # lose the combat
+    def lose(self):
+        print("You lose !")
+        self.game.game_state = "map"
+        del self
+
+    def input(self, event):
+        if event.type == pygame.KEYDOWN and self.__intro_played:
+            # Player choice #
+            if event.key == pygame.K_ESCAPE:
+                self.__menu = 0
+                self.__choice = 1
+            if event.key == pygame.K_RETURN:
+                if self.__menu == 0:
+                    if self.__choice == 1:
+                        self.__menu = 1
+                    if self.__choice == 2:
+                        self.__menu = 2
+                    if self.__choice == 3:
+                        self.__menu = 3
+                    if self.__choice == 4:
+                        self.run()
+                elif self.__menu == 1:
+                    try:
+                        self.turn(1)
+                    except IndexError:
+                        print("You can't use this move")
+
+            if event.key == pygame.K_RIGHT:
+                if self.__choice == 1 or self.__choice == 3:
+                    self.__choice += 1
+            if event.key == pygame.K_LEFT:
+                if self.__choice == 2 or self.__choice == 4:
+                    self.__choice -= 1
+            if event.key == pygame.K_UP:
+                if self.__choice == 3 or self.__choice == 4:
+                    self.__choice -= 2
+            if event.key == pygame.K_DOWN:
+                if self.__choice == 1 or self.__choice == 2:
+                    self.__choice += 2
 
     def draw(self, screen):
 
         # Background #
         screen.blit(self.game.SPRITES.forest_background, (0, 0))
 
-        # Pokemon #
-        # Enemy Intro #
-        self.play_summon_enemy_pokemon(screen)
+        # Player Intro #
+        screen.blit(self.game.SPRITES.get_combat_player_sprite(self.__player_sprite), (self.__player_sprite_x, 200))
 
+        # PLAYER POKEMON #
         if self.__intro_played:
             self.play_summon_pokemon(screen)
             if self.__pokemon_spawned:
                 scaled_pokemon_sprite = pygame.transform.scale(self.game.SPRITES.get_pokemon_sprite(self.__player_pokemon.get_id() + 1, "back"), (self.__pokemon_scale, self.__pokemon_scale))
                 screen.blit(scaled_pokemon_sprite, (self.__pokemon__x, self.__pokemon__y))
 
-        # Player Intro #
-        screen.blit(self.game.SPRITES.get_combat_player_sprite(self.__player_sprite), (self.__player_sprite_x, 200))
-
-        # Status #
+        # Enemy Pokemon Status(HP_BAR, LVL, NAME)#
         screen.blit(self.game.SPRITES.enemy_pokemon_status, (80, 50))
+        pygame.draw.rect(screen, self.game.COLORS.GREEN, (275, 138, self.__enemy_pokemon.get_hp() / self.__enemy_pokemon.get_max_hp() * 240, 15))
+        self.game.SETTINGS.combat_font.render_to(screen, (490, 80), str(self.__enemy_pokemon.get_lvl()), size=60, fgcolor=self.game.COLORS.DARK_GRAY)
+        self.game.SETTINGS.combat_font.render_to(screen, (120, 80), self.__enemy_pokemon.get_name(), size=60, fgcolor=self.game.COLORS.DARK_GRAY)
+
+        # Player Pokemon Status(HP_BAR, LVL, NAME, HP)#
         screen.blit(self.game.SPRITES.player_pokemon_status, (720, 345))
+        pygame.draw.rect(screen, self.game.COLORS.GREEN, (952, 413, self.__player_pokemon.get_hp() / self.__player_pokemon.get_max_hp() * 230, 15))
+        self.game.SETTINGS.combat_font.render_to(screen, (1160, 365), str(self.__player_pokemon.get_lvl()), size=60, fgcolor=self.game.COLORS.DARK_GRAY)
+        self.game.SETTINGS.combat_font.render_to(screen, (800, 365), self.__player_pokemon.get_name(), size=60, fgcolor=self.game.COLORS.DARK_GRAY)
+        self.game.SETTINGS.combat_font.render_to(screen, (1080, 435), str(self.__player_pokemon.get_hp()) + "/ " + str(self.__player_pokemon.get_max_hp()), size=55, fgcolor=self.game.COLORS.DARK_GRAY)
 
         # Bottom UI #
         screen.blit(self.game.SPRITES.bottom_message_box, (0, 500))
-        screen.blit(self.game.SPRITES.choice_box, (680, 500))
-        screen.blit(self.game.SPRITES.choice_arrow, (715, 555))
+        if self.__menu == 0 and self.__intro_played:
+            screen.blit(self.game.SPRITES.choice_box, (680, 500))
+        elif self.__menu == 1:
+            screen.blit(self.game.SPRITES.choice_move_box, (0, 500))
+
+        # Pokemon #
+        # Enemy Intro #
+        self.play_summon_enemy_pokemon(screen)
+        if not self.__enemy_pokemon_spawned:
+            self.game.SETTINGS.combat_font.render_to(screen, (80, 550), "A wild " + self.__enemy_pokemon.get_name() + " appeared !", size=60, fgcolor=self.game.COLORS.WHITE)
+        elif self.__enemy_pokemon_spawned and not self.__intro_played:
+            self.game.SETTINGS.combat_font.render_to(screen, (80, 550), "GO " + self.__player_pokemon.get_name() + " !!!", size=60, fgcolor=self.game.COLORS.WHITE)
+
+        # choice arrow
+        if self.__menu == 0 and self.__intro_played:
+            if self.__choice == 1:
+                screen.blit(self.game.SPRITES.choice_arrow, (715, 555))
+            elif self.__choice == 2:
+                screen.blit(self.game.SPRITES.choice_arrow, (990, 555))
+            elif self.__choice == 3:
+                screen.blit(self.game.SPRITES.choice_arrow, (715, 625))
+            elif self.__choice == 4:
+                screen.blit(self.game.SPRITES.choice_arrow, (990, 625))
+        elif self.__menu == 1:
+            if self.__choice == 1:
+                screen.blit(self.game.SPRITES.choice_arrow, (50, 555))
+            elif self.__choice == 2:
+                screen.blit(self.game.SPRITES.choice_arrow, (450, 555))
+            elif self.__choice == 3:
+                screen.blit(self.game.SPRITES.choice_arrow, (50, 625))
+            elif self.__choice == 4:
+                screen.blit(self.game.SPRITES.choice_arrow, (450, 625))
+
+        # Text #
+        if self.__menu == 0 and self.__intro_played:
+            self.game.SETTINGS.combat_font.render_to(screen, (80, 550), "What will " + self.__player_pokemon.get_name() + " do ?", size=60, fgcolor=self.game.COLORS.WHITE)
+        elif self.__menu == 1:
+            x = 100
+            y = 550
+            # player pokemon moves
+            for i in range(4):
+                try:
+                    self.game.SETTINGS.combat_font.render_to(screen, (x, y), self.__player_pokemon.get_moves()[i]["name"].upper(), size=100, fgcolor=self.game.COLORS.DARK_GRAY)
+                except IndexError:
+                    y += 25
+                    self.game.SETTINGS.combat_font.render_to(screen, (x, y), "--", size=100, fgcolor=self.game.COLORS.DARK_GRAY)
+                    y -= 25
+                x += 400
+                if i == 1:
+                    x = 100
+                    y = 620
+            # player current selected move pp and max pp and type
+            try:
+                self.game.SETTINGS.combat_font.render_to(screen, (1080, 550), str(self.__player_pokemon.get_current_move_pp()[self.__choice - 1]), size=80, fgcolor=self.game.COLORS.DARK_GRAY)
+                self.game.SETTINGS.combat_font.render_to(screen, (1180, 550), str(self.__player_pokemon.get_moves()[self.__choice - 1]["pp"]), size=80, fgcolor=self.game.COLORS.DARK_GRAY)
+                self.game.SETTINGS.combat_font.render_to(screen, (1040, 635), self.__player_pokemon.get_moves()[self.__choice - 1]["type"].upper(), size=70, fgcolor=self.game.COLORS.DARK_GRAY)
+            except IndexError:
+                pass
 
         # Player Intro
         if self.__enemy_pokemon_x <= 800:
@@ -230,7 +321,7 @@ class Combat:
 
     def play_summon_pokemon(self, screen):
         player_pokemon_sprite = self.game.SPRITES.get_pokemon_sprite(self.__player_pokemon.get_id() + 1, "back")
-        player_pokemon_sprite.fill((255, self.__spawn_color, 255), special_flags=pygame.BLEND_MAX)
+        player_pokemon_sprite.fill((255, self.__spawn_color, 255), special_flags=pygame.BLEND_RGB_MAX)
         scaled_pokemon_sprite = pygame.transform.scale(player_pokemon_sprite, (self.__pokemon_scale, self.__pokemon_scale))
         if self.__pokemon_scale < 300:
             self.__pokemon_scale += 10
@@ -244,4 +335,7 @@ class Combat:
     def play_summon_enemy_pokemon(self, screen):
         if self.__enemy_pokemon_x > 800:
             self.__enemy_pokemon_x -= 10
+        else:
+            self.__enemy_pokemon_spawned = True
         screen.blit(self.game.SPRITES.get_pokemon_sprite(self.__enemy_pokemon.get_id() + 1, "front"), (self.__enemy_pokemon_x, 70))
+

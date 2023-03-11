@@ -68,6 +68,10 @@ class Pokemon:
     def get_moves(self):
         return self.__moves
 
+    # get the current move pp of the pokemon #
+    def get_current_move_pp(self):
+        return self.__current_move_PP
+
     # get defense of the pokemon #
     def get_defense(self):
         return self.CURRENT_DEFENSE
@@ -92,6 +96,10 @@ class Pokemon:
     def get_hp(self):
         return self.CURRENT_HP
 
+    # get the max hp of the pokemon #
+    def get_max_hp(self):
+        return self.__MAX_HP
+
     # get the type of the pokemon #
     def get_type(self):
         return self.__TYPE
@@ -103,10 +111,6 @@ class Pokemon:
     # get the lvl of the pokemon #
     def get_lvl(self):
         return self.__LEVEL
-
-    # get the ID of the pokemon #
-    def get_id(self):
-        return self.__ID
 
     # get if the pokemon is shiny #
     def get_shiny(self):

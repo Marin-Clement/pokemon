@@ -1,6 +1,7 @@
 import json
 import random
 import pygame as pg
+import pygame.freetype as ft
 import sys
 
 
@@ -30,7 +31,7 @@ class Settings:
         self.FPS = 60
 
         # Fonts #
-        self.fonts = pg.font.Font("../../Data/Game/Font/Pokemon_Font.FON", 16)
+        self.combat_font = ft.Font("../../Data/Game/Font/pokemon_fire_red.ttf", 32)
 
 
 class Generate(Settings):
@@ -88,13 +89,13 @@ class Sprites(Colors):
         self.sea_background = pg.transform.scale(pg.image.load("../../Data/Combat/Combat_Sprite/Background/Sea_Background.png"), (1280, 500))
         self.training_background = pg.transform.scale(pg.image.load("../../Data/Combat/Combat_Sprite/Background/Training_Background.png"), (1280, 500))
 
-
         # UI Sprites #
         self.bottom_message_box = pg.transform.scale(pg.image.load("../../Data/Combat/Combat_Sprite/CombatUI/Bottom_Message_Box.png"), (1280, 220))
         self.choice_box = pg.transform.scale(pg.image.load("../../Data/Combat/Combat_Sprite/CombatUI/Choice_Box.png"), (600, 220))
         self.choice_arrow = pg.transform.scale(pg.image.load("../../Data/Combat/Combat_Sprite/CombatUI/Choice_Arrow.png"), (40, 50))
         self.enemy_pokemon_status = pg.transform.scale(pg.image.load("../../Data/Combat/Combat_Sprite/CombatUI/Enemy_Pokemon_Stats.png"), (500, 150))
         self.player_pokemon_status = pg.transform.scale(pg.image.load("../../Data/Combat/Combat_Sprite/CombatUI/Player_Pokemon_Stats.png"), (500, 150))
+        self.choice_move_box = pg.transform.scale(pg.image.load("../../Data/Combat/Combat_Sprite/CombatUI/Move_Box.png"), (1280, 220))
 
         # Animation Cooldown #
         self.player_intro_speed = 250
