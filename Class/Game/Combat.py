@@ -4,7 +4,6 @@ import math
 import pygame
 
 
-
 class Combat:
     def __init__(self, game, player_pokemons, enemy_pokemon):
         self.game = game  # Game object
@@ -23,17 +22,27 @@ class Combat:
         self.__player_sprite_x = -400
         self.__player_sprite = 1
         self.__pokemon_scale = 20
-        self.__pokemon__y = 400
+        self.__pokemon__y = 420
         self.__pokemon__x = 400
         self.__spawn_color = 200
 
         # Check who attack first
         self.attacker = self.check_who_attack_first()
 
+        # save enemy turn state
+        self.__enemy_attack_next_turn = False
+
+        # last move
+        self.__last_move = ""
+
         # Animation variables #
         self.__intro_played = False
         self.__enemy_pokemon_spawned = False
         self.__pokemon_spawned = False
+        self.__player_pokemon_old_hp = self.__player_pokemon.get_hp()
+        self.__enemy_pokemon_old_hp = self.__enemy_pokemon.get_hp()
+        self.__player_animation_hp = False
+        self.__enemy_animation_hp = False
 
         # self.turn()  # start the combat
 
@@ -62,6 +71,8 @@ class Combat:
         # ask the player what he want to do
         if self.attacker == self.__player_pokemon:
             if move_choice == 1:
+                self.__last_move = self.__player_pokemon.get_moves()[int(self.__choice) - 1]["name"]
+                self.__player_pokemon.get_current_move_pp()[int(self.__choice) - 1] -= 1
                 damage = self.attack(self.__player_pokemon.get_lvl(), self.__player_pokemon.get_attack(), self.__player_pokemon.get_sp_attack(),
                                      self.__player_pokemon.get_moves()[int(self.__choice) - 1]["type"], self.__player_pokemon.get_moves()[int(self.__choice) - 1]["category"], self.__player_pokemon.get_moves()[int(self.__choice) - 1]["power"],
                                      self.__enemy_pokemon.get_defense(), self.__enemy_pokemon.get_sp_defense(), self.__enemy_pokemon.get_type())
@@ -82,7 +93,7 @@ class Combat:
                     self.attacker = self.__enemy_pokemon
                     self.__menu = 0
                     self.__choice = 1
-                    self.turn()
+                    self.__enemy_attack_next_turn = True
                 else:
                     self.attacker = self.__player_pokemon
             else:
@@ -93,6 +104,7 @@ class Combat:
             print("Enemy turn")
             # make the enemy choose a random attack
             choice = random.randint(0, len(self.__enemy_pokemon.get_moves()) - 1)
+            self.__last_move = self.__enemy_pokemon.get_moves()[choice]["name"]
             # Make the enemy attack
             damage = self.attack(self.__enemy_pokemon.get_lvl(), self.__enemy_pokemon.get_attack(), self.__enemy_pokemon.get_sp_attack(),
                                  self.__enemy_pokemon.get_moves()[choice]["type"], self.__enemy_pokemon.get_moves()[choice]["category"], self.__enemy_pokemon.get_moves()[choice]["power"],
@@ -177,7 +189,7 @@ class Combat:
         del self
 
     def input(self, event):
-        if event.type == pygame.KEYDOWN and self.__intro_played:
+        if event.type == pygame.KEYDOWN and self.__intro_played and not self.__player_animation_hp and not self.__enemy_animation_hp and not self.__enemy_attack_next_turn:
             # Player choice #
             if event.key == pygame.K_ESCAPE:
                 self.__menu = 0
@@ -213,6 +225,23 @@ class Combat:
 
     def draw(self, screen):
 
+        # Update old hp bar (for animation) #
+        if self.__enemy_pokemon_old_hp >= self.__enemy_pokemon.get_hp():
+            self.__enemy_pokemon_old_hp -= 0.1
+            self.__enemy_animation_hp = True
+        else:
+            self.__enemy_animation_hp = False
+        if self.__player_pokemon_old_hp >= self.__player_pokemon.get_hp():
+            self.__player_pokemon_old_hp -= 0.1
+            self.__player_animation_hp = True
+        else:
+            self.__player_animation_hp = False
+        # Check if the enemy attack next turn and if the animation is done #
+        if not self.__enemy_animation_hp and self.__enemy_attack_next_turn:
+            self.__enemy_attack_next_turn = False
+            self.turn()
+
+
         # Background #
         screen.blit(self.game.SPRITES.forest_background, (0, 0))
 
@@ -228,20 +257,22 @@ class Combat:
 
         # Enemy Pokemon Status(HP_BAR, LVL, NAME)#
         screen.blit(self.game.SPRITES.enemy_pokemon_status, (80, 50))
-        pygame.draw.rect(screen, self.game.COLORS.GREEN, (275, 138, self.__enemy_pokemon.get_hp() / self.__enemy_pokemon.get_max_hp() * 240, 15))
+        pygame.draw.rect(screen, self.hp_bar_color(self.__enemy_pokemon_old_hp, self.__enemy_pokemon), (275, 138, self.__enemy_pokemon_old_hp / self.__enemy_pokemon.get_max_hp() * 240, 15))
         self.game.SETTINGS.combat_font.render_to(screen, (490, 80), str(self.__enemy_pokemon.get_lvl()), size=60, fgcolor=self.game.COLORS.DARK_GRAY)
         self.game.SETTINGS.combat_font.render_to(screen, (120, 80), self.__enemy_pokemon.get_name(), size=60, fgcolor=self.game.COLORS.DARK_GRAY)
 
-        # Player Pokemon Status(HP_BAR, LVL, NAME, HP)#
+        # Player Pokemon Status(HP_BAR, LVL, NAME, HP, XP)#
         screen.blit(self.game.SPRITES.player_pokemon_status, (720, 345))
-        pygame.draw.rect(screen, self.game.COLORS.GREEN, (952, 413, self.__player_pokemon.get_hp() / self.__player_pokemon.get_max_hp() * 230, 15))
+        pygame.draw.rect(screen, self.hp_bar_color(self.__player_pokemon_old_hp,self.__player_pokemon), (952, 413, self.__player_pokemon_old_hp / self.__player_pokemon.get_max_hp() * 230, 15))
         self.game.SETTINGS.combat_font.render_to(screen, (1160, 365), str(self.__player_pokemon.get_lvl()), size=60, fgcolor=self.game.COLORS.DARK_GRAY)
         self.game.SETTINGS.combat_font.render_to(screen, (800, 365), self.__player_pokemon.get_name(), size=60, fgcolor=self.game.COLORS.DARK_GRAY)
-        self.game.SETTINGS.combat_font.render_to(screen, (1080, 435), str(self.__player_pokemon.get_hp()) + "/ " + str(self.__player_pokemon.get_max_hp()), size=55, fgcolor=self.game.COLORS.DARK_GRAY)
+        self.game.SETTINGS.combat_font.render_to(screen, (1080, 435), str(round(self.__player_pokemon_old_hp)) + "/ " + str(self.__player_pokemon.get_max_hp()), size=55, fgcolor=self.game.COLORS.DARK_GRAY)
+        # XP BAR #
+        pygame.draw.rect(screen, self.game.COLORS.CYAN, (874, 479, self.__player_pokemon.get_exp() / (self.__player_pokemon.get_exp() + self.__player_pokemon.get_exp_to_next_level()) * 616, 8))
 
         # Bottom UI #
         screen.blit(self.game.SPRITES.bottom_message_box, (0, 500))
-        if self.__menu == 0 and self.__intro_played:
+        if self.__menu == 0 and self.__intro_played and not self.__player_animation_hp and not self.__enemy_animation_hp and not self.__enemy_attack_next_turn:
             screen.blit(self.game.SPRITES.choice_box, (680, 500))
         elif self.__menu == 1:
             screen.blit(self.game.SPRITES.choice_move_box, (0, 500))
@@ -255,7 +286,7 @@ class Combat:
             self.game.SETTINGS.combat_font.render_to(screen, (80, 550), "GO " + self.__player_pokemon.get_name() + " !!!", size=60, fgcolor=self.game.COLORS.WHITE)
 
         # choice arrow
-        if self.__menu == 0 and self.__intro_played:
+        if self.__menu == 0 and self.__intro_played and not self.__player_animation_hp and not self.__enemy_animation_hp and not self.__enemy_attack_next_turn:
             if self.__choice == 1:
                 screen.blit(self.game.SPRITES.choice_arrow, (715, 555))
             elif self.__choice == 2:
@@ -275,7 +306,7 @@ class Combat:
                 screen.blit(self.game.SPRITES.choice_arrow, (450, 625))
 
         # Text #
-        if self.__menu == 0 and self.__intro_played:
+        if self.__menu == 0 and self.__intro_played and not self.__enemy_animation_hp and not self.__player_animation_hp:
             self.game.SETTINGS.combat_font.render_to(screen, (80, 550), "What will " + self.__player_pokemon.get_name() + " do ?", size=60, fgcolor=self.game.COLORS.WHITE)
         elif self.__menu == 1:
             x = 100
@@ -299,6 +330,12 @@ class Combat:
                 self.game.SETTINGS.combat_font.render_to(screen, (1040, 635), self.__player_pokemon.get_moves()[self.__choice - 1]["type"].upper(), size=70, fgcolor=self.game.COLORS.DARK_GRAY)
             except IndexError:
                 pass
+
+        # pokemon as use a move #
+        if self.__enemy_animation_hp:
+            self.game.SETTINGS.combat_font.render_to(screen, (80, 550), self.__player_pokemon.get_name() + " as used " + self.__last_move, size=60, fgcolor=self.game.COLORS.WHITE)
+        elif self.__player_animation_hp:
+            self.game.SETTINGS.combat_font.render_to(screen, (80, 550), self.__enemy_pokemon.get_name() + " as used " + self.__last_move, size=60, fgcolor=self.game.COLORS.WHITE)
 
         # Player Intro
         if self.__enemy_pokemon_x <= 800:
@@ -339,3 +376,10 @@ class Combat:
             self.__enemy_pokemon_spawned = True
         screen.blit(self.game.SPRITES.get_pokemon_sprite(self.__enemy_pokemon.get_id() + 1, "front"), (self.__enemy_pokemon_x, 70))
 
+    def hp_bar_color(self, pokemon_hp, pokemon):
+        if pokemon_hp <= pokemon.get_max_hp() * 0.25:
+            return self.game.COLORS.RED
+        elif pokemon_hp <= pokemon.get_max_hp() * 0.5:
+            return self.game.COLORS.YELLOW
+        else:
+            return self.game.COLORS.GREEN

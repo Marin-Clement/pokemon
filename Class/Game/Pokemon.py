@@ -116,6 +116,14 @@ class Pokemon:
     def get_shiny(self):
         return self.__SHINY
 
+    # get the exp of the pokemon #
+    def get_exp(self):
+        return self.__EXP
+
+    # get the exp to next level of the pokemon #
+    def get_exp_to_next_level(self):
+        return self.__EXP_TO_NEXT_LEVEL
+
     # _____SETTERS_____ #
 
     # set the current attack of the pokemon
@@ -142,6 +150,9 @@ class Pokemon:
     def set_hp(self, hp):
         self.__MAX_HP = hp
 
+    # set the current xp of the pokemon
+    def set_exp(self, exp):
+        self.__EXP = exp
     # ____________________STATS_____________________ #
 
     # calculate the stats of the pokemon
@@ -198,6 +209,7 @@ class Pokemon:
     # level up the pokemon (increase the level by 1 and recalculate the stats)
     def level_up(self):
         self.__LEVEL += 1
+        self.__EXP = 0
         self.calculate_stat()
         self.calculate_exp_to_next_level()
         print(f"{self.__NAME} has leveled up ! It's now level {self.__LEVEL} !")

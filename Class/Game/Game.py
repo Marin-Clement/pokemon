@@ -47,7 +47,8 @@ class Game:
         print("Debug")
 
         # Debug Add pokemon
-        self.Player.add_pokemons(Pokemon(self, 25, self.GENERATE.generate_IV(), 20, self.GENERATE.generate_nature(), 5, [1, 3, 39], False))
+        self.Player.add_pokemons(Pokemon(self, 4, self.GENERATE.generate_IV(), 20, self.GENERATE.generate_nature(), 5, [1, 3, 39], False))
+        self.Player.get_pokemons()[0].set_exp(25)
         # self.Player.add_pokemons(Pokemon(self, 5, self.GENERATE.generate_IV(), 1, self.GENERATE.generate_nature(), 1, [1, 3, 6, 4], True))
 
         # Debug Level up pokemon
@@ -62,12 +63,12 @@ class Game:
         if self.game_state == "map":
             self.screen.fill(self.COLORS.BLACK)
             # INDEV WATERMARK #
-            self.SETTINGS.combat_font.render_to(self.screen, (10, 10), "INDEV", self.COLORS.WHITE, size=50)
+            self.SETTINGS.combat_font.render_to(self.screen, (1150, 10), "INDEV", self.COLORS.WHITE, size=50)
 
         if self.game_state == "combat":
             self.COMBAT.draw(self.screen)
             # INDEV WATERMARK #
-            self.SETTINGS.combat_font.render_to(self.screen, (10, 10), "INDEV", self.COLORS.BLACK, size=50)
+            self.SETTINGS.combat_font.render_to(self.screen, (1150, 10), "INDEV", self.COLORS.BLACK, size=50)
 
 
 
